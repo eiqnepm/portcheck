@@ -3,7 +3,7 @@ name: ci
 on:
   push:
     branches:
-      - "main"
+      - "dev"
 
 jobs:
   docker:
@@ -26,4 +26,4 @@ jobs:
           context: .
           platforms: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x
           push: true
-          tags: eiqnepm/portcheck:latest
+          tags: eiqnepm/portcheck:dev
