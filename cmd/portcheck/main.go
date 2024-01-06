@@ -36,6 +36,9 @@ func main() {
 	clientWebScheme := env("CLIENT_WEBUI_SCHEME", "http")
 	clientWebHost := env("CLIENT_WEBUI_HOST", "localhost")
 	clientWebPort := env("CLIENT_WEBUI_PORT", "8080")
+	if !strings.EqualFold(client, "qBittorrent") {
+		clientWebPort = env("CLIENT_WEBUI_PORT", "8112")
+	}
 	clientWebUrl := u.URL{
 		Scheme: clientWebScheme,
 		Host:   net.JoinHostPort(clientWebHost, clientWebPort),
@@ -43,6 +46,9 @@ func main() {
 
 	qbitUsername := env("CLIENT_USERNAME", "admin")
 	clientPassword := env("CLIENT_PASSWORD", "adminadmin")
+	if !strings.EqualFold(client, "qBittorrent") {
+		clientPassword = env("CLIENT_PASSWORD", "deluge")
+	}
 	t, err := strconv.Atoi(env("TIMEOUT", "300"))
 	if err != nil {
 		log.Fatal(err)
