@@ -6,8 +6,10 @@ import (
 	u "net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/Eiqnepm/portcheck/internal/deluge"
 	"github.com/Eiqnepm/portcheck/internal/network"
 	"github.com/Eiqnepm/portcheck/internal/qbit"
 )
@@ -24,21 +26,23 @@ func env(key string, defaultValue string) (value string) {
 func main() {
 	log.SetFlags(log.LstdFlags)
 
-	qbitPort, err := strconv.Atoi(env("QBITTORRENT_PORT", "6881"))
+	client := env("CLIENT", "qBittorrent")
+
+	clientPort, err := strconv.Atoi(env("CLIENT_PORT", "6881"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	qbitWebScheme := env("QBITTORRENT_WEBUI_SCHEME", "http")
-	qbitWebHost := env("QBITTORRENT_WEBUI_HOST", "localhost")
-	qbitWebPort := env("QBITTORRENT_WEBUI_PORT", "8080")
-	qbitWebUrl := u.URL{
-		Scheme: qbitWebScheme,
-		Host:   net.JoinHostPort(qbitWebHost, qbitWebPort),
+	clientWebScheme := env("CLIENT_WEBUI_SCHEME", "http")
+	clientWebHost := env("CLIENT_WEBUI_HOST", "localhost")
+	clientWebPort := env("CLIENT_WEBUI_PORT", "8080")
+	clientWebUrl := u.URL{
+		Scheme: clientWebScheme,
+		Host:   net.JoinHostPort(clientWebHost, clientWebPort),
 	}
 
-	qbitUsername := env("QBITTORRENT_USERNAME", "admin")
-	qbitPassword := env("QBITTORRENT_PASSWORD", "adminadmin")
+	qbitUsername := env("CLIENT_USERNAME", "admin")
+	clientPassword := env("CLIENT_PASSWORD", "adminadmin")
 	t, err := strconv.Atoi(env("TIMEOUT", "300"))
 	if err != nil {
 		log.Fatal(err)
@@ -66,15 +70,46 @@ func main() {
 			continue
 		}
 
-		err = network.QueryPort(outboundIp, qbitPort, dialTimeout)
+		err = network.QueryPort(outboundIp, clientPort, dialTimeout)
 		if err == nil {
 			continue
 		}
 
 		log.Println(err)
 
+		if !strings.EqualFold(client, "qBittorrent") {
+			func() {
+				sesh, err := deluge.Login(clientWebUrl, clientPassword)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+
+				defer func(sesh deluge.Session) {
+					err := sesh.Logout()
+					if err != nil {
+						log.Println(err)
+					}
+				}(sesh)
+
+				err = sesh.SetPreference("listen_ports", []int{0})
+				if err != nil {
+					log.Println(err)
+					return
+				}
+
+				err = sesh.SetPreference("listen_ports", []int{clientPort})
+				if err != nil {
+					log.Println(err)
+					return
+				}
+			}()
+
+			continue
+		}
+
 		func() {
-			session, err := qbit.Login(qbitWebUrl, qbitUsername, qbitPassword)
+			session, err := qbit.Login(clientWebUrl, qbitUsername, clientPassword)
 			if err != nil {
 				log.Println(err)
 				return
@@ -93,7 +128,7 @@ func main() {
 				return
 			}
 
-			err = session.SetPreference("listen_port", qbitPort)
+			err = session.SetPreference("listen_port", clientPort)
 			if err != nil {
 				log.Println(err)
 				return

@@ -11,10 +11,10 @@ services:
     depends_on:
       - "qbittorrent"
     environment:
-      QBITTORRENT_PORT: "6881"
-      QBITTORRENT_WEBUI_PORT: "8080"
-      QBITTORRENT_USERNAME: "admin"
-      QBITTORRENT_PASSWORD: "adminadmin"
+      CLIENT_PORT: "6881"
+      CLIENT_WEBUI_PORT: "8080"
+      CLIENT_USERNAME: "admin"
+      CLIENT_PASSWORD: "adminadmin"
     image: "eiqnepm/portcheck:latest"
     network_mode: "service:gluetun"
     restart: "unless-stopped"
@@ -58,13 +58,14 @@ services:
 
 ## Environment variables
 
-| Variable                   | Default      | Description                                           |
-| -------------------------- | ------------ | ----------------------------------------------------- |
-| `QBITTORRENT_PORT`         | `6881`       | qBittorrent incoming connections port                 |
-| `QBITTORRENT_WEBUI_SCHEME` | `http`       | qBittorrent WebUI scheme                              |
-| `QBITTORRENT_WEBUI_HOST`   | `localhost`  | qBittorrent WebUI host                                |
-| `QBITTORRENT_WEBUI_PORT`   | `8080`       | qBittorrent WebUI port                                |
-| `QBITTORRENT_USERNAME`     | `admin`      | qBittorrent WebUI username                            |
-| `QBITTORRENT_PASSWORD`     | `adminadmin` | qBittorrent WebUI password                            |
-| `TIMEOUT`                  | `300`        | Seconds between each port check                       |
-| `DIAL_TIMEOUT`             | `5`          | Seconds before the port check is considered a failure |
+| Variable              | Default       | Description                                           |
+| --------------------- | ------------- | ----------------------------------------------------- |
+| `CLIENT`              | `qBittorrent` | Either `qBittorrent` or `Deluge`                      |
+| `CLIENT_PORT`         | `6881`        | Client incoming connections port                      |
+| `CLIENT_WEBUI_SCHEME` | `http`        | Client WebUI scheme                                   |
+| `CLIENT_WEBUI_HOST`   | `localhost`   | Client WebUI host                                     |
+| `CLIENT_WEBUI_PORT`   | `8080`        | Client WebUI port                                     |
+| `CLIENT_USERNAME`     | `admin`       | Client WebUI username (not required for Deluge)                                 |
+| `CLIENT_PASSWORD`     | `adminadmin`  | Client WebUI password                                 |
+| `TIMEOUT`             | `300`         | Seconds between each port check                       |
+| `DIAL_TIMEOUT`        | `5`           | Seconds before the port check is considered a failure |
