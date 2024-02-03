@@ -65,7 +65,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	network := env("NETWORK", "udp")
+	network := env("NETWORK", "tcp")
 
 	t, err := strconv.Atoi(env("TIMEOUT", "300"))
 	if err != nil {
@@ -86,6 +86,8 @@ func main() {
 			log.Println(err)
 			continue
 		}
+
+		log.Println(localAddr)
 
 		err = queryPort(network, localAddr, port, dialTimeout)
 		if err == nil {
