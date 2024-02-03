@@ -5,6 +5,8 @@ WORKDIR /usr/src/app
 COPY go.mod ./
 COPY cmd ./cmd
 
+RUN go mod download
+
 RUN go build -ldflags="-s -w" -o /usr/local/bin/app cmd/portcheck/main.go
 
 FROM alpine:3.17
