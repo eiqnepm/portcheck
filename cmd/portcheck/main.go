@@ -105,6 +105,8 @@ func main() {
 			continue
 		}
 
+		log.Println(string(output))
+
 		ids := []string{"restart"}
 		for _, line := range strings.Split(string(output), "\n") {
 			var container struct {
@@ -112,7 +114,6 @@ func main() {
 			}
 
 			if err := json.Unmarshal([]byte(line), &container); err != nil {
-				log.Println(line)
 				log.Println(err)
 				continue
 			}
