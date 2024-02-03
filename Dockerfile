@@ -3,6 +3,7 @@ FROM golang:1.20.2-alpine3.17 AS build
 WORKDIR /usr/src/app
 
 COPY go.mod ./
+COPY go.sum ./
 COPY cmd ./cmd
 
 RUN go mod download
