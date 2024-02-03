@@ -112,6 +112,7 @@ func main() {
 			}
 
 			if err := json.Unmarshal([]byte(line), &container); err != nil {
+				log.Println(line)
 				log.Println(err)
 				continue
 			}
