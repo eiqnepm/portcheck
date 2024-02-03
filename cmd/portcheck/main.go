@@ -87,7 +87,7 @@ func main() {
 			continue
 		}
 
-		log.Println(localAddr)
+		// log.Println(localAddr)
 
 		err = queryPort(network, localAddr, port, dialTimeout)
 		if err == nil {
