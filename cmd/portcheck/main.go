@@ -1,14 +1,17 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
+	"fmt"
 	"log"
 	"net"
 	"os"
-	"os/exec"
 	"strconv"
-	"strings"
 	"time"
+
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/client"
 )
 
 func env(key string, defaultValue string) (value string) {
@@ -91,40 +94,34 @@ func main() {
 
 		log.Println(err)
 
-		args := []string{
-			"ps",
-			"--format",
-			"json",
-			"--filter",
-			"label=io.github.eiqnepm.portcheck.enable=true",
-		}
-
-		output, err := exec.Command("docker", args...).Output()
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-
-		log.Println(string(output))
-
-		ids := []string{"restart"}
-		for _, line := range strings.Split(string(output), "\n") {
-			var container struct {
-				ID string `json:"ID"`
-			}
-
-			if err := json.Unmarshal([]byte(line), &container); err != nil {
+		func() {
+			ctx := context.Background()
+			cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+			if err != nil {
 				log.Println(err)
-				continue
+				return
 			}
 
-			log.Println(container.ID)
-			ids = append(ids, container.ID)
-		}
+			defer func(cli *client.Client) {
+				if err := cli.Close(); err != nil {
+					log.Println(err)
+				}
+			}(cli)
 
-		if _, err := exec.Command("docker", ids...).Output(); err != nil {
-			log.Println(err)
-			continue
-		}
+			filter := filters.NewArgs()
+			filter.Add("label", "io.github.eiqnepm.portcheck.enable=true")
+			containers, err := cli.ContainerList(ctx, container.ListOptions{Filters: filter})
+			if err != nil {
+				log.Println(err)
+				return
+			}
+
+			for _, con := range containers {
+				fmt.Println(con.ID)
+				if err := cli.ContainerRestart(context.Background(), con.ID, container.StopOptions{}); err != nil {
+					log.Println(err)
+				}
+			}
+		}()
 	}
 }
