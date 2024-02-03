@@ -24,7 +24,7 @@ func env(key string, defaultValue string) (value string) {
 }
 
 func getLocalAddr() (string, error) {
-	conn, err := net.Dial("tcp", "255.255.255.255:0")
+	conn, err := net.Dial("udp", "255.255.255.255:0")
 	if err != nil {
 		return "", nil
 	}
