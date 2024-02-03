@@ -65,7 +65,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	network := env("NETWORK", "tcp")
+	network := env("NETWORK", "udp")
 
 	t, err := strconv.Atoi(env("TIMEOUT", "300"))
 	if err != nil {
