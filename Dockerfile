@@ -9,6 +9,9 @@ RUN go build -ldflags="-s -w" -o /usr/local/bin/app cmd/portcheck/main.go
 
 FROM alpine:3.17
 
+RUN apk update
+RUN apk add --no-cache docker-cli
+
 COPY --from=build /usr/local/bin/app /app
 
 CMD ["/app"]
