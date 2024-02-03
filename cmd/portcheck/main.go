@@ -1,17 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net"
-	u "net/url"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/Eiqnepm/portcheck/internal/deluge"
-	"github.com/Eiqnepm/portcheck/internal/network"
-	"github.com/Eiqnepm/portcheck/internal/qbit"
 )
 
 func env(key string, defaultValue string) (value string) {
@@ -23,32 +20,50 @@ func env(key string, defaultValue string) (value string) {
 	return
 }
 
+func getLocalAddr() (string, error) {
+	conn, err := net.Dial("tcp", "255.255.255.255:0")
+	if err != nil {
+		return "", nil
+	}
+
+	defer func(conn *net.Conn) {
+		err := (*conn).Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}(&conn)
+
+	host, _, err := net.SplitHostPort(conn.LocalAddr().String())
+	if err != nil {
+		return "", err
+	}
+
+	return host, nil
+}
+
+func queryPort(network string, ip string, port int, timeout time.Duration) error {
+	conn, err := net.DialTimeout(network, net.JoinHostPort(ip, strconv.Itoa(port)), timeout)
+	if err != nil {
+		return err
+	}
+
+	if err := conn.Close(); err != nil {
+		log.Println(err)
+	}
+
+	return nil
+}
+
 func main() {
-	log.SetFlags(log.LstdFlags)
+	log.SetFlags(log.LstdFlags | log.Llongfile)
 
-	client := env("CLIENT", "qBittorrent")
-
-	clientPort, err := strconv.Atoi(env("CLIENT_PORT", "6881"))
+	port, err := strconv.Atoi(env("PORT", "6881"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	clientWebScheme := env("CLIENT_WEBUI_SCHEME", "http")
-	clientWebHost := env("CLIENT_WEBUI_HOST", "localhost")
-	clientWebPort := env("CLIENT_WEBUI_PORT", "8080")
-	if !strings.EqualFold(client, "qBittorrent") {
-		clientWebPort = env("CLIENT_WEBUI_PORT", "8112")
-	}
-	clientWebUrl := u.URL{
-		Scheme: clientWebScheme,
-		Host:   net.JoinHostPort(clientWebHost, clientWebPort),
-	}
+	network := env("NETWORK", "tcp")
 
-	qbitUsername := env("CLIENT_USERNAME", "admin")
-	clientPassword := env("CLIENT_PASSWORD", "adminadmin")
-	if !strings.EqualFold(client, "qBittorrent") {
-		clientPassword = env("CLIENT_PASSWORD", "deluge")
-	}
 	t, err := strconv.Atoi(env("TIMEOUT", "300"))
 	if err != nil {
 		log.Fatal(err)
@@ -62,83 +77,52 @@ func main() {
 
 	dialTimeout := time.Duration(t) * time.Second
 
-	firstLoop := true
-	for {
-		if !firstLoop {
-			time.Sleep(timeout)
-		}
-
-		firstLoop = false
-
-		outboundIp, err := network.GetOutboundIP()
+	for range time.Tick(timeout) {
+		localAddr, err := getLocalAddr()
 		if err != nil {
 			log.Println(err)
 			continue
 		}
 
-		err = network.QueryPort(outboundIp, clientPort, dialTimeout)
+		err = queryPort(network, localAddr, port, dialTimeout)
 		if err == nil {
 			continue
 		}
 
 		log.Println(err)
 
-		if !strings.EqualFold(client, "qBittorrent") {
-			func() {
-				sesh, err := deluge.Login(clientWebUrl, clientPassword)
-				if err != nil {
-					log.Println(err)
-					return
-				}
+		args := []string{
+			"ps",
+			"--format",
+			"json",
+			"--filter",
+			"label=io.github.eiqnepm.portcheck.enable=true",
+		}
 
-				defer func(sesh deluge.Session) {
-					err := sesh.Logout()
-					if err != nil {
-						log.Println(err)
-					}
-				}(sesh)
-
-				err = sesh.SetPreference("listen_ports", []int{0})
-				if err != nil {
-					log.Println(err)
-					return
-				}
-
-				err = sesh.SetPreference("listen_ports", []int{clientPort})
-				if err != nil {
-					log.Println(err)
-					return
-				}
-			}()
-
+		output, err := exec.Command("docker", args...).Output()
+		if err != nil {
+			log.Println(err)
 			continue
 		}
 
-		func() {
-			session, err := qbit.Login(clientWebUrl, qbitUsername, clientPassword)
-			if err != nil {
-				log.Println(err)
-				return
+		ids := []string{"restart"}
+		for _, line := range strings.Split(string(output), "\n") {
+			var container struct {
+				ID string `json:"ID"`
 			}
 
-			defer func(session qbit.Session) {
-				err := session.Logout()
-				if err != nil {
-					log.Println(err)
-				}
-			}(session)
-
-			err = session.SetPreference("listen_port", 0)
-			if err != nil {
+			if err := json.Unmarshal([]byte(line), &container); err != nil {
 				log.Println(err)
-				return
+				continue
 			}
 
-			err = session.SetPreference("listen_port", clientPort)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-		}()
+			log.Println(container.ID)
+			ids = append(ids, container.ID)
+		}
+
+		if _, err := exec.Command("docker", ids...).Output(); err != nil {
+			log.Println(err)
+			continue
+		}
 	}
 }
