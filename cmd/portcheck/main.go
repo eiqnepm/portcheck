@@ -14,17 +14,30 @@ import (
 	"github.com/docker/docker/client"
 )
 
-func env(key string, defaultValue string) (value string) {
-	value = os.Getenv(key)
-	if value == "" {
-		value = defaultValue
+func env(key string, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
 	}
 
-	return
+	return defaultValue
 }
 
-func getLocalAddr() (string, error) {
-	conn, err := net.Dial("udp", "255.255.255.255:0")
+func getLocalAddr(version int) (string, error) {
+	var (
+		network string
+		address string
+	)
+
+	switch version {
+	case 4:
+		network = "udp4"
+		address = "10.0.0.0:0"
+	case 6:
+		network = "udp6"
+		address = "[fd00::]:0"
+	}
+
+	conn, err := net.Dial(network, address)
 	if err != nil {
 		return "", nil
 	}
@@ -44,8 +57,8 @@ func getLocalAddr() (string, error) {
 	return host, nil
 }
 
-func queryPort(network string, ip string, port int, timeout time.Duration) error {
-	conn, err := net.DialTimeout(network, net.JoinHostPort(ip, strconv.Itoa(port)), timeout)
+func checkPort(ip string, port int, timeout time.Duration) error {
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(ip, strconv.Itoa(port)), timeout)
 	if err != nil {
 		return err
 	}
@@ -65,8 +78,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	network := env("NETWORK", "tcp")
-
 	t, err := strconv.Atoi(env("TIMEOUT", "300"))
 	if err != nil {
 		log.Fatal(err)
@@ -80,17 +91,19 @@ func main() {
 
 	dialTimeout := time.Duration(t) * time.Second
 
+	version, err := strconv.Atoi(env("IP_VERSION", "4"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	for range time.Tick(timeout) {
-		localAddr, err := getLocalAddr()
+		localAddr, err := getLocalAddr(version)
 		if err != nil {
 			log.Println(err)
 			continue
 		}
 
-		// log.Println(localAddr)
-
-		err = queryPort(network, localAddr, port, dialTimeout)
-		if err == nil {
+		if err = checkPort(localAddr, port, dialTimeout); err == nil {
 			continue
 		}
 
