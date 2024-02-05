@@ -65,3 +65,4 @@ services:
 | `PORT`         | `6881`  | TCP port to check                                     |
 | `TIMEOUT`      | `300`   | Seconds between each port check                       |
 | `DIAL_TIMEOUT` | `5`     | Seconds before the port check is considered a failure |
+| `IP_VERSION`   | `4`     | IP version (4 or 6)                                   |
