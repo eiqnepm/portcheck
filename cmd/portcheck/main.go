@@ -103,7 +103,8 @@ func main() {
 			continue
 		}
 
-		if err = checkPort(localAddr, port, dialTimeout); err == nil {
+		err = checkPort(localAddr, port, dialTimeout)
+		if err == nil {
 			continue
 		}
 
