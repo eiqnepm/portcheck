@@ -3,15 +3,15 @@ package main
 import (
 	"log"
 	"net"
-	u "net/url"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/Eiqnepm/portcheck/internal/deluge"
-	"github.com/Eiqnepm/portcheck/internal/network"
-	"github.com/Eiqnepm/portcheck/internal/qbit"
+	"github.com/eiqnepm/portcheck/internal/deluge"
+	"github.com/eiqnepm/portcheck/internal/network"
+	"github.com/eiqnepm/portcheck/internal/qbit"
 )
 
 func env(key string, defaultValue string) (value string) {
@@ -24,10 +24,9 @@ func env(key string, defaultValue string) (value string) {
 }
 
 func main() {
-	log.SetFlags(log.LstdFlags)
+	log.SetFlags(log.Flags() | log.Lshortfile)
 
 	client := env("CLIENT", "qBittorrent")
-
 	clientPort, err := strconv.Atoi(env("CLIENT_PORT", "6881"))
 	if err != nil {
 		log.Fatal(err)
@@ -39,7 +38,8 @@ func main() {
 	if !strings.EqualFold(client, "qBittorrent") {
 		clientWebPort = env("CLIENT_WEBUI_PORT", "8112")
 	}
-	clientWebUrl := u.URL{
+
+	clientWebUrl := url.URL{
 		Scheme: clientWebScheme,
 		Host:   net.JoinHostPort(clientWebHost, clientWebPort),
 	}
@@ -49,40 +49,39 @@ func main() {
 	if !strings.EqualFold(client, "qBittorrent") {
 		clientPassword = env("CLIENT_PASSWORD", "deluge")
 	}
-	t, err := strconv.Atoi(env("TIMEOUT", "300"))
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	timeout := time.Duration(t) * time.Second
-	t, err = strconv.Atoi(env("DIAL_TIMEOUT", "5"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	dialTimeout := time.Duration(t) * time.Second
-
-	firstLoop := true
-	for {
-		if !firstLoop {
-			time.Sleep(timeout)
+	startupTimeout := func() time.Duration {
+		startupTimeout, err := strconv.Atoi(env("STARTUP_TIMEOUT", "10"))
+		if err != nil {
+			log.Fatal(err)
 		}
 
-		firstLoop = false
+		return time.Duration(startupTimeout) * time.Second
+	}()
 
-		outboundIp, err := network.GetOutboundIP()
+	checkTimeout := func() time.Duration {
+		timeout, err := strconv.Atoi(env("TIMEOUT", "300"))
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		return time.Duration(timeout) * time.Second
+	}()
+
+	log.Printf("Port checks starting in %v second(s)\n", startupTimeout.Seconds())
+	time.Sleep(startupTimeout)
+	for c := time.Tick(checkTimeout); ; <-c {
+		success, err := network.CheckPort(clientPort)
 		if err != nil {
 			log.Println(err)
 			continue
 		}
 
-		err = network.QueryPort(outboundIp, clientPort, dialTimeout)
-		if err == nil {
+		if success {
 			continue
 		}
 
-		log.Println(err)
-
+		log.Println("Port is closed")
 		if !strings.EqualFold(client, "qBittorrent") {
 			func() {
 				sesh, err := deluge.Login(clientWebUrl, clientPassword)

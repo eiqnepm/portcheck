@@ -21,29 +21,35 @@ func (sesh Session) post(unmarshmellowed any) error {
 	if err != nil {
 		return err
 	}
+
 	req, err := http.NewRequest("POST", sesh.url.String(), bytes.NewBuffer(marshmellowed))
 	if err != nil {
 		return err
 	}
+
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := sesh.client.Do(req)
 	if err != nil {
 		return err
 	}
+
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
 			log.Println(err)
 		}
 	}(resp.Body)
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
+
 	log.Println(string(body))
 	if resp.StatusCode != 200 {
 		return errors.New(resp.Status)
 	}
+
 	return nil
 }
 
@@ -52,12 +58,14 @@ func Login(url u.URL, password string) (Session, error) {
 	if err != nil {
 		return Session{}, err
 	}
+
 	sesh := Session{
 		url: url,
 		client: &http.Client{
 			Jar: jar,
 		},
 	}
+
 	sesh.url.Path = "json"
 	err = sesh.post(map[string]interface{}{
 		"method": "auth.login",
@@ -66,6 +74,7 @@ func Login(url u.URL, password string) (Session, error) {
 		},
 		"id": 0,
 	})
+
 	return sesh, err
 }
 

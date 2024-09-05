@@ -1,40 +1,41 @@
 package network
 
 import (
+	"errors"
+	"io"
 	"log"
-	"net"
+	"net/http"
+	"net/url"
 	"strconv"
-	"time"
 )
 
-func GetOutboundIP() (ip string, err error) {
-	conn, err := net.Dial("udp", "255.255.255.255:0")
+func CheckPort(port int) (success bool, err error) {
+	resp, err := http.Get("https://portcheck.transmissionbt.com/" + url.PathEscape(strconv.Itoa(port)))
 	if err != nil {
-		return
+		return success, err
 	}
 
-	defer func(conn net.Conn) {
-		err := conn.Close()
-		if err != nil {
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
 			log.Println(err)
 		}
-	}(conn)
+	}()
 
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	ip = localAddr.IP.String()
-	return
-}
+	if resp.StatusCode != 200 {
+		return success, errors.New("port check status: " + resp.Status)
+	}
 
-func QueryPort(ip string, port int, timeout time.Duration) (err error) {
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(ip, strconv.Itoa(port)), timeout)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return
+		return success, err
 	}
 
-	e := conn.Close()
-	if e != nil {
-		log.Println(e)
+	switch string(body) {
+	case "0":
+		return false, nil
+	case "1":
+		return true, nil
+	default:
+		return success, err
 	}
-
-	return
 }

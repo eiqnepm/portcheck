@@ -12,7 +12,7 @@ services:
       - deluge
     environment:
       - CLIENT=Deluge
-    image: eiqnepm/portcheck:dev
+    image: eiqnepm/portcheck:manny
     network_mode: service:gluetun
     restart: unless-stopped
 
@@ -54,14 +54,14 @@ services:
 
 ## Environment variables
 
-| Variable              | Default                                      | Description                                           |
-| --------------------- | -------------------------------------------- | ----------------------------------------------------- |
-| `CLIENT`              | `qBittorrent`                                | BitTorrent client (`qBittorrent` or `Deluge`)         |
-| `CLIENT_PORT`         | `6881`                                       | Client incoming connections port                      |
-| `CLIENT_WEBUI_SCHEME` | `http`                                       | Client WebUI scheme                                   |
-| `CLIENT_WEBUI_HOST`   | `localhost`                                  | Client WebUI host                                     |
-| `CLIENT_WEBUI_PORT`   | `8080` (qBittorrent) `8112` (Deluge)         | Client WebUI port                                     |
-| `CLIENT_USERNAME`     | `admin`                                      | Client WebUI username (not required for Deluge)       |
-| `CLIENT_PASSWORD`     | `adminadmin` (qBittorrent) `deluge` (Deluge) | Client WebUI password                                 |
-| `TIMEOUT`             | `300`                                        | Seconds between each port check                       |
-| `DIAL_TIMEOUT`        | `5`                                          | Seconds before the port check is considered a failure |
+| Variable              | Default                                      | Description                                     |
+| --------------------- | -------------------------------------------- | ----------------------------------------------- |
+| `CLIENT`              | `qBittorrent`                                | BitTorrent client (`qBittorrent` or `Deluge`)   |
+| `CLIENT_PORT`         | `6881`                                       | Client incoming connections port                |
+| `CLIENT_WEBUI_SCHEME` | `http`                                       | Client WebUI scheme                             |
+| `CLIENT_WEBUI_HOST`   | `localhost`                                  | Client WebUI host                               |
+| `CLIENT_WEBUI_PORT`   | `8080` (qBittorrent) `8112` (Deluge)         | Client WebUI port                               |
+| `CLIENT_USERNAME`     | `admin`                                      | Client WebUI username (not required for Deluge) |
+| `CLIENT_PASSWORD`     | `adminadmin` (qBittorrent) `deluge` (Deluge) | Client WebUI password                           |
+| `TIMEOUT`             | `300`                                        | Seconds between each port check                 |
+| `STARTUP_TIMEOUT`     | `10`                                         | Seconds before port checking starts             |

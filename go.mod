@@ -1,3 +1,3 @@
-module github.com/Eiqnepm/portcheck
+module github.com/eiqnepm/portcheck
 
-go 1.20
+go 1.23.0
